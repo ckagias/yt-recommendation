@@ -23,7 +23,7 @@ def explain_match(source: Video, candidate: Video) -> str:
 
 
 @router.get("/recommend/{video_id}", response_model=RecommendResponse)
-def recommend(video_id: str, limit: int = 10):
+def recommend(video_id: str, limit: int = 10, category: str | None = None):
     session: Session = SessionLocal()
     try:
         source = session.get(Video, video_id)
@@ -33,12 +33,10 @@ def recommend(video_id: str, limit: int = 10):
             raise HTTPException(status_code=422, detail="Video has no embedding yet")
 
         distance = Video.embedding.cosine_distance(source.embedding)
-        stmt = (
-            select(Video, distance.label("distance"))
-            .where(Video.video_id != video_id)
-            .order_by(distance)
-            .limit(limit)
-        )
+        stmt = select(Video, distance.label("distance")).where(Video.video_id != video_id)
+        if category is not None:
+            stmt = stmt.where(Video.category == category)
+        stmt = stmt.order_by(distance).limit(limit)
         rows = session.execute(stmt).all()
 
         results = [
