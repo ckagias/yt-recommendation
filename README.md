@@ -2,7 +2,7 @@
 
 ### A content-based video recommendation API built with FastAPI, PostgreSQL, and pgvector
 
-[About](#about) • [How it works](#how-it-works) • [Installation](#installation) • [Usage](#usage) • [Project layout](#project-layout) • [Dependencies](#dependencies) • [Status](#status) • [License](#license)
+[About](#about) • [How it works](#how-it-works) • [Installation](#installation) • [Usage](#usage) • [Project layout](#project-layout) • [Dependencies](#dependencies) • [Status](#status) • [Limitations](#limitations) • [License](#license)
 
 ---
 
@@ -155,7 +155,16 @@ docker-compose.yml   PostgreSQL + pgvector for local development
 
 ## Status
 
-Core pipeline is working end to end: the real trending-videos dataset (~37k videos, ~450k trending snapshots) is loaded into PostgreSQL, every video has a pgvector embedding, and `GET /recommend/{video_id}` returns ranked, explained recommendations backed by real cosine-similarity search. Still to build: an `/explain`-only endpoint for a specific video pair, request/response validation edge cases, and tests.
+Core pipeline is working end to end: the real trending-videos dataset (~37k videos, ~450k trending snapshots) is loaded into PostgreSQL, every video has a pgvector embedding, and `GET /recommend/{video_id}` returns ranked, explained recommendations backed by real cosine-similarity search, with bounded `limit` and an optional category filter. Still to build: an `/explain`-only endpoint for a specific video pair, and tests.
+
+---
+
+## Limitations
+
+- **Cold start**: a video only shows up in `/recommend` results once it has an embedding. A newly ingested video needs `generate_embeddings.py` rerun before it's queryable, there's no on-demand embedding at request time.
+- **The category filter can force weak matches**: `?category=X` restricts results to that category even when nothing in it is genuinely similar to the source video. In testing, forcing an unrelated category on an FPL transfer-tips video still returned five results, but their similarity dropped from 0.99 (same channel, same real topic) to around 0.30, the closest available options in a category that doesn't actually match. The filter narrows the search space, it doesn't validate that a good match exists within it.
+- **Content-based only**: recommendations come purely from title, description, tags, and category text, embedded and compared by meaning. There's no collaborative signal (what other viewers of this video also watched), so a video with thin or generic metadata gets weaker recommendations regardless of how good the video actually is.
+- **Similarity search isn't approximate yet**: pgvector runs an exact nearest-neighbor scan over all ~37k video embeddings, which is fast at this scale but doesn't use an approximate index (`ivfflat` or `hnsw`). That would need revisiting before this approach could hold up at millions of videos.
 
 ---
 
