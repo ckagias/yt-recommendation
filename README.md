@@ -70,9 +70,12 @@ backend/
     config.py         Settings, loaded from env vars
     db.py               SQLAlchemy engine, session factory, declarative base
     models/              Table definitions: Channel, Video, TrendingSnapshot
-    schemas/               API request/response shapes (in progress)
-    routers/                 Route modules (in progress)
+    schemas/               API request/response shapes: RecommendResponse, RecommendedVideo
+    routers/                 recommend.py: GET /recommend/{video_id}
   create_tables.py    One-off script to create tables from the models
+  ingest.py            Loads the CSV dataset into Postgres via bulk upserts
+  generate_embeddings.py  Embeds every video's title/description/tags/category with
+                            sentence-transformers and stores the vector via pgvector
 data/                Local dataset storage (git-ignored, not included in the repo)
 docker-compose.yml   PostgreSQL + pgvector for local development
 ```
@@ -94,7 +97,7 @@ docker-compose.yml   PostgreSQL + pgvector for local development
 
 ## Status
 
-Early stage. The database schema, connection layer, and a working health-check endpoint are in place and verified against a real PostgreSQL instance. The data ingestion pipeline, embedding generation, and the actual recommendation/explain endpoints are still being built.
+Core pipeline is working end to end: the real trending-videos dataset (~37k videos, ~450k trending snapshots) is loaded into PostgreSQL, every video has a pgvector embedding, and `GET /recommend/{video_id}` returns ranked, explained recommendations backed by real cosine-similarity search. Still to build: an `/explain`-only endpoint for a specific video pair, request/response validation edge cases, and tests.
 
 ---
 
