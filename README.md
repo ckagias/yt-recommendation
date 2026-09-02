@@ -29,8 +29,8 @@ Video metadata (title, description, tags, category) is embedded into vectors usi
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/ckagias/yt-recommendation-system.git
-   cd yt-recommendation-system
+   git clone https://github.com/ckagias/yt-recommendation.git
+   cd yt-recommendation
    ```
 2. **Start PostgreSQL (with pgvector)**
    ```bash
