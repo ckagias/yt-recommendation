@@ -41,8 +41,12 @@ Video metadata (title, description, tags, category) is embedded into vectors usi
    cd backend
    python3 -m venv .venv
    source .venv/bin/activate
+   pip install torch --index-url https://download.pytorch.org/whl/cpu
    pip install -r requirements.txt
    ```
+   The `torch` line installs the CPU-only PyTorch build first. Skipping it lets
+   `sentence-transformers` pull in the default GPU/CUDA build instead, which adds
+   over a gigabyte of unused CUDA packages since this project only does CPU inference.
 4. **Create the database tables**
    ```bash
    python create_tables.py

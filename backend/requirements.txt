@@ -4,3 +4,5 @@ pydantic-settings
 sqlalchemy
 psycopg[binary]
 isodate
+sentence-transformers
+pgvector
