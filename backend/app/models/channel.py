@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from sqlalchemy import BigInteger
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -14,6 +15,6 @@ class Channel(Base):
     custom_url: Mapped[str | None]
     country: Mapped[str | None]
     published_at: Mapped[datetime]
-    subscriber_count: Mapped[int]
-    view_count: Mapped[int]
+    subscriber_count: Mapped[int] = mapped_column(BigInteger)
+    view_count: Mapped[int] = mapped_column(BigInteger)
     video_count: Mapped[int]

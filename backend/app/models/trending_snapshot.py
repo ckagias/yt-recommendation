@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, UniqueConstraint
+from sqlalchemy import BigInteger, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
@@ -15,7 +15,7 @@ class TrendingSnapshot(Base):
     video_id: Mapped[str] = mapped_column(ForeignKey("videos.video_id"))
     country: Mapped[str]
     trending_date: Mapped[date]
-    view_count: Mapped[int]
+    view_count: Mapped[int] = mapped_column(BigInteger)
     like_count: Mapped[int]
     comment_count: Mapped[int]
 
