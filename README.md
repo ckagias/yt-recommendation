@@ -2,7 +2,7 @@
 
 ### A content-based video recommendation API built with FastAPI, PostgreSQL, and pgvector
 
-[About](#about) • [How it works](#how-it-works) • [Installation](#installation) • [Project layout](#project-layout) • [Dependencies](#dependencies) • [Status](#status) • [License](#license)
+[About](#about) • [How it works](#how-it-works) • [Installation](#installation) • [Usage](#usage) • [Project layout](#project-layout) • [Dependencies](#dependencies) • [Status](#status) • [License](#license)
 
 ---
 
@@ -51,13 +51,68 @@ Video metadata (title, description, tags, category) is embedded into vectors usi
    ```bash
    python create_tables.py
    ```
-5. **Start the API**
+5. **Get the dataset**: download the [Youtube Trending Videos Dataset](https://www.kaggle.com/datasets/keshavbansal95/youtube-trending-videos-dataset)
+   from Kaggle and extract `youtube_trending_3_countries.csv` into `data/` at the
+   repo root (`data/youtube_trending_3_countries.csv`). Not included in the repo.
+6. **Load the data into Postgres**
+   ```bash
+   python ingest.py
+   ```
+   Takes under a minute. Loads ~450k trending-snapshot rows across ~37k distinct
+   videos and ~6k channels via batched upserts.
+7. **Generate embeddings for every video**
+   ```bash
+   python generate_embeddings.py
+   ```
+   Downloads the `all-MiniLM-L6-v2` sentence-transformer model on first run
+   (a few hundred MB, cached afterward), then embeds every video's title,
+   description, tags, and category. Takes a few minutes on CPU.
+8. **Start the API**
    ```bash
    uvicorn app.main:app --reload --port 8000
    ```
-6. Visit `http://localhost:8000` — it should return `{"status": "ok", "database": "connected"}`.
+9. Visit `http://localhost:8000`. It should return `{"status": "ok", "database": "connected"}`.
 
-No `.env` file is required for local development; `docker-compose.yml` and the backend's default database URL already agree with each other out of the box.
+No `.env` file is required for local development; `docker-compose.yml` and the backend's default database URL already agree with each other out of the box. Steps 5-7 are one-time setup, skip them on later runs.
+
+---
+
+## Usage
+
+With the server running (`uvicorn app.main:app --reload --port 8000`):
+
+- **Interactive API docs**: open `http://localhost:8000/docs` in a browser.
+  FastAPI's auto-generated Swagger UI, lets you call `/recommend` through a form
+  without writing curl commands.
+- **Health check**
+  ```bash
+  curl http://127.0.0.1:8000/
+  ```
+- **Get recommendations for a video**
+  ```bash
+  curl "http://127.0.0.1:8000/recommend/<video_id>?limit=5" | python3 -m json.tool
+  ```
+  Find a real `video_id` to try:
+  ```bash
+  docker compose exec db psql -U yt -d yt_recommender \
+    -c "SELECT video_id, title FROM videos ORDER BY random() LIMIT 5;"
+  ```
+- **Filter recommendations by category**
+  ```bash
+  curl "http://127.0.0.1:8000/recommend/<video_id>?limit=5&category=Sports" | python3 -m json.tool
+  ```
+  Note: forcing a category the source video doesn't naturally match still
+  returns results (the closest videos within that category), but similarity
+  scores drop sharply since the constraint overrides genuine similarity. A
+  real limitation, not a bug.
+- **Explore the raw data**
+  ```bash
+  docker compose exec db psql -U yt -d yt_recommender
+  ```
+  Then, for example:
+  ```sql
+  SELECT category, count(*) FROM videos GROUP BY category ORDER BY count(*) DESC;
+  ```
 
 ---
 
@@ -92,6 +147,9 @@ docker-compose.yml   PostgreSQL + pgvector for local development
 | [psycopg](https://www.psycopg.org/psycopg3/)                    | PostgreSQL driver                           |
 | [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) | Environment-based configuration |
 | [pgvector](https://github.com/pgvector/pgvector)                | Vector similarity search inside PostgreSQL  |
+| [sentence-transformers](https://www.sbert.net/)                 | Generates the video embeddings              |
+| [PyTorch](https://pytorch.org/) (CPU build)                     | Backs sentence-transformers                 |
+| [isodate](https://github.com/gweis/isodate)                     | Parses ISO 8601 video durations             |
 
 ---
 

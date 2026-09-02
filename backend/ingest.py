@@ -2,10 +2,9 @@
 
 Streams the CSV row by row (never loads the whole file into memory) and
 accumulates rows into batches, flushed with a single bulk upsert statement
-per table per batch rather than one round-trip per row — this is the
-difference between ~15M individual INSERT/SELECT pairs and ~15K bulk
-statements, which is what actually makes ingesting a file this size
-practical.
+per table per batch rather than one round-trip per row. This is the
+difference between ~450K individual INSERT/SELECT pairs and ~90 bulk
+statements, which is what actually makes ingestion fast.
 
 Usage: python ingest.py [--limit N]
 """

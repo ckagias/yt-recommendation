@@ -1,6 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.db import SessionLocal
 from app.models.video import Video
@@ -23,7 +23,11 @@ def explain_match(source: Video, candidate: Video) -> str:
 
 
 @router.get("/recommend/{video_id}", response_model=RecommendResponse)
-def recommend(video_id: str, limit: int = 10, category: str | None = None):
+def recommend(
+    video_id: str,
+    limit: int = Query(default=10, ge=1, le=100),
+    category: str | None = None,
+):
     session: Session = SessionLocal()
     try:
         source = session.get(Video, video_id)
@@ -33,7 +37,11 @@ def recommend(video_id: str, limit: int = 10, category: str | None = None):
             raise HTTPException(status_code=422, detail="Video has no embedding yet")
 
         distance = Video.embedding.cosine_distance(source.embedding)
-        stmt = select(Video, distance.label("distance")).where(Video.video_id != video_id)
+        stmt = (
+            select(Video, distance.label("distance"))
+            .options(joinedload(Video.channel))
+            .where(Video.video_id != video_id)
+        )
         if category is not None:
             stmt = stmt.where(Video.category == category)
         stmt = stmt.order_by(distance).limit(limit)
